@@ -6,8 +6,10 @@ import { SellingDialog, UpdatePasswordDialog } from "../component";
 
 export const Dashboard = () => {
   const theme = useTheme();
-  const token = localStorage.getItem("token");
-  const userRole = localStorage.getItem("userRole")
+  const token = localStorage.getItem(
+    "CognitoIdentityServiceProvider.10fqms5r41oqvidv1jp0r2gkpt.44e894a8-6081-70dd-9e9a-21483e83295f.accessToken"
+  );
+  const userRole = localStorage.getItem("userRole");
   const navigation = useNavigate();
   const [feedbackState, setFeedbackState] = useState<any>({
     open: false,
@@ -15,12 +17,12 @@ export const Dashboard = () => {
   const [wantToSell, setWantTOSell] = useState<boolean>(false);
   const [products, setProducts] = useState<any>(null);
   const [isUpdatePassword, setIsUpdatePassword] = useState<boolean>(false);
-  
-  useEffect(()=>{
-    if(!token || !userRole){
-      navigation('/')
+
+  useEffect(() => {
+    if (!token || !userRole) {
+      navigation("/");
     }
-  },[token,userRole])
+  }, [token, userRole]);
 
   const getProductDetails = useCallback(async () => {
     try {
@@ -34,31 +36,33 @@ export const Dashboard = () => {
       if (response.status) {
         const data = await response.json();
         setProducts(data);
-        
       }
     } catch (error) {
       console.log(error);
     }
   }, [token]);
 
-  const handleBuyProduct = useCallback(async (e: any, id: string) => {
-    e.preventDefault();
-    try {
-      await fetch(`http://localhost:8080/v1/auth/products`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `${token}`,
-        },
-        body: JSON.stringify({
-          productId: id,
-        }),
-      });
-      getProductDetails()
-    } catch (error) {
-      console.log(error);
-    }
-  }, [getProductDetails]);
+  const handleBuyProduct = useCallback(
+    async (e: any, id: string) => {
+      e.preventDefault();
+      try {
+        await fetch(`http://localhost:8080/v1/auth/products`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `${token}`,
+          },
+          body: JSON.stringify({
+            productId: id,
+          }),
+        });
+        getProductDetails();
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    [getProductDetails]
+  );
 
   useEffect(() => {
     getProductDetails();
@@ -124,8 +128,11 @@ export const Dashboard = () => {
                   textTransform: "none",
                 }}
                 onClick={() => {
-                  localStorage.setItem("token", "");
-                  localStorage.setItem("userRole", "")
+                  localStorage.setItem(
+                    "CognitoIdentityServiceProvider.10fqms5r41oqvidv1jp0r2gkpt.44e894a8-6081-70dd-9e9a-21483e83295f.accessToken",
+                    ""
+                  );
+                  localStorage.setItem("userRole", "");
                   navigation("/");
                 }}
               >
@@ -151,22 +158,26 @@ export const Dashboard = () => {
               <Card elevation={4} key={id}>
                 <Stack spacing={1} p={2}>
                   <Typography>Title: {name}</Typography>
-                  <Stack direction={'row'} spacing={2} >
+                  <Stack direction={"row"} spacing={2}>
                     <Typography>Description: {description}</Typography>
                     <Typography>Price: {`${price ?? 0}`}</Typography>
                   </Stack>
-                  {userRole === 'buyer' && <Stack
-                    direction="row"
-                    alignItems="center"
-                    justifyContent="space-between"
-                  >
-                   {!isBought && <Button
-                      variant="contained"
-                      onClick={(e) => handleBuyProduct(e, id)}
+                  {userRole === "buyer" && (
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      justifyContent="space-between"
                     >
-                      Buy
-                    </Button>}
-                  </Stack>}
+                      {!isBought && (
+                        <Button
+                          variant="contained"
+                          onClick={(e) => handleBuyProduct(e, id)}
+                        >
+                          Buy
+                        </Button>
+                      )}
+                    </Stack>
+                  )}
                 </Stack>
               </Card>
             ))
@@ -175,18 +186,20 @@ export const Dashboard = () => {
           )}
         </Stack>
       </Stack>
-      {userRole === "seller" && <Stack
-        direction="row"
-        justifyContent="flex-end"
-        sx={{
-          position: "sticky",
-          bottom: 40,
-          padding: 1,
-        }}
-        onClick={() => setWantTOSell(true)}
-      >
-        <Fab variant="extended">Sell</Fab>
-      </Stack>}
+      {userRole === "seller" && (
+        <Stack
+          direction="row"
+          justifyContent="flex-end"
+          sx={{
+            position: "sticky",
+            bottom: 40,
+            padding: 1,
+          }}
+          onClick={() => setWantTOSell(true)}
+        >
+          <Fab variant="extended">Sell</Fab>
+        </Stack>
+      )}
     </>
   );
 };

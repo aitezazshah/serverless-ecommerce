@@ -15,7 +15,29 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup/src/yup.js";
+import { Amplify } from "aws-amplify";
+import {
+  signUp,
+  signIn,
+  confirmSignUp,
+  getCurrentUser,
+  fetchUserAttributes,
+  resendSignUpCode,
+  updateUserAttributes,
+  signOut,
+} from "aws-amplify/auth";
 
+// Configure Amplify
+Amplify.configure({
+  Auth: {
+    Cognito: {
+      userPoolId: "us-east-1_tdVO1Ghz3",
+      userPoolClientId: "10fqms5r41oqvidv1jp0r2gkpt",
+    },
+  },
+});
+
+// Rest of your initial values and schema remain the same
 const signupInitialValue = {
   username: "",
   email: "",
@@ -49,6 +71,10 @@ export const Login = () => {
   const navigation = useNavigate();
   const [isSignUp, setIsSignUp] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [verificationRequired, setVerificationRequired] =
+    useState<boolean>(false);
+  const [verificationEmail, setVerificationEmail] = useState<string>("");
+  const [verificationCode, setVerificationCode] = useState<string>("");
 
   const {
     register,
@@ -64,62 +90,191 @@ export const Login = () => {
 
   const handleLogin = useCallback(async () => {
     try {
-      const response = await fetch("http://localhost:8080/v1/log-in", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: watch("email"),
-          password: watch("password"),
-          role: watch("userRole"),
-        }),
+      // Check if user is already signed in
+      try {
+        const currentUser = await getCurrentUser();
+        if (currentUser) {
+          const attributes = await fetchUserAttributes();
+
+          // Verify user role
+          if (attributes["custom:role"] !== watch("userRole")) {
+            await signOut();
+            setError("Invalid user role for login");
+            return;
+          }
+
+          // User is already signed in with correct role
+          localStorage.setItem("userRole", watch("userRole"));
+          navigation("/dashboard");
+          return;
+        }
+      } catch (error) {
+        // Not signed in, continue with login
+      }
+
+      // Regular login flow
+      const { isSignedIn } = await signIn({
+        username: watch("email"),
+        password: watch("password"),
       });
-      console.log({ response: response.body });
-      if (response.status === 200) {
-        const data = await response.json();
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("userRole", watch("userRole"))
+
+      if (isSignedIn) {
+        const attributes = await fetchUserAttributes();
+
+        // Verify user role
+        if (attributes["custom:role"] !== watch("userRole")) {
+          await signOut();
+          setError("Invalid user role for login");
+          return;
+        }
+
+        // Store necessary information
+        localStorage.setItem("userRole", watch("userRole"));
         reset();
         navigation("/dashboard");
         setError("");
-      }else{
-        setError("Please enter correct email password");
       }
-    } catch (error) {
-      console.log(error);
-     
+    } catch (error: any) {
+      if (error.name === "UserNotConfirmedException") {
+        setVerificationRequired(true);
+        setVerificationEmail(watch("email"));
+        setError("Please verify your email first");
+      } else {
+        setError(error.message || "Login failed");
+      }
     }
   }, [watch, reset, navigation]);
 
   const handleSignUp = useCallback(async () => {
     try {
-      const response = await fetch("http://localhost:8080/v1/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const { isSignUpComplete } = await signUp({
+        username: watch("email"),
+        password: watch("password"),
+        options: {
+          userAttributes: {
+            email: watch("email"),
+            name: watch("username"),
+          },
+          autoSignIn: true, // enables auto sign-in after verification
         },
-        body: JSON.stringify({
-          email: watch("email"),
-          password: watch("password"),
-          name: watch("username"),
-          phoneNo: watch("phone"),
-          role: watch("userRole"),
-        }),
       });
 
-      if (response.status === 200) {
-        setIsSignUp(false);
-        reset();
-        setError("")
-      }else{
-        setError("Something went wrong")
+      if (!isSignUpComplete) {
+        setVerificationRequired(true);
+        setVerificationEmail(watch("email"));
+        setError("");
       }
-    } catch (error) {
-      console.log(error);
+    } catch (error: any) {
+      setError(error.message || "Signup failed");
     }
-  }, [watch, reset]);
+  }, [watch]);
 
+  // After successful verification, update the user attributes
+  const handleVerification = async () => {
+    try {
+      const { isSignUpComplete } = await confirmSignUp({
+        username: verificationEmail,
+        confirmationCode: verificationCode,
+      });
+
+      if (isSignUpComplete) {
+        try {
+          // Auto sign-in after verification
+          const { isSignedIn } = await signIn({
+            username: verificationEmail,
+            password: watch("password"),
+          });
+
+          if (isSignedIn) {
+            // Update user attributes with role
+            await updateUserAttributes({
+              userAttributes: {
+                "custom:role": watch("userRole"),
+              },
+            });
+
+            // Store role in localStorage
+            localStorage.setItem("userRole", watch("userRole"));
+
+            // Navigate to dashboard directly
+            reset();
+            navigation("/dashboard");
+            return; // Exit the function here
+          }
+        } catch (error) {
+          console.error("Error during auto sign-in:", error);
+          setError(
+            "Verification successful but login failed. Please try logging in manually."
+          );
+        }
+      }
+
+      // Only reach here if auto sign-in fails
+      setVerificationRequired(false);
+      setIsSignUp(false);
+      setError("Email verified successfully. Please login.");
+      reset();
+    } catch (error: any) {
+      setError(error.message || "Verification failed");
+    }
+  };
+
+  const handleResendVerificationCode = async () => {
+    try {
+      await resendSignUpCode({
+        username: verificationEmail,
+      });
+      setError("Verification code resent to your email");
+    } catch (error: any) {
+      setError(error.message || "Failed to resend verification code");
+    }
+  };
+
+  if (verificationRequired) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
+        <Paper elevation={3} sx={{ padding: 4, width: 300 }}>
+          <Typography variant="h5" mb={2} textAlign="center">
+            Verify Email
+          </Typography>
+          <Stack spacing={2}>
+            <TextField
+              label="Verification Code"
+              variant="outlined"
+              fullWidth
+              value={verificationCode}
+              onChange={(e) => setVerificationCode(e.target.value)}
+            />
+            {error && <Typography color="error">{error}</Typography>}
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleVerification}
+              fullWidth
+            >
+              Verify
+            </Button>
+            <Button
+              variant="text"
+              onClick={handleResendVerificationCode}
+              fullWidth
+            >
+              Resend Code
+            </Button>
+          </Stack>
+        </Paper>
+      </Box>
+    );
+  }
+
+  // Your existing return JSX remains the same
   return (
     <Box
       sx={{
