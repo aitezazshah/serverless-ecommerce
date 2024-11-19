@@ -14,8 +14,8 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
-import { FeedbackDialog } from "../component/feedbackdialog";
-import { SellingDialog, UpdatePasswordDialog } from "../component";
+
+import { SellingDialog } from "../component";
 
 export const Dashboard = () => {
   const theme = useTheme();
@@ -24,10 +24,10 @@ export const Dashboard = () => {
   );
   const userRole = localStorage.getItem("userRole");
   const navigation = useNavigate();
-  const [feedbackState, setFeedbackState] = useState<any>({ open: false });
+
   const [wantToSell, setWantTOSell] = useState<boolean>(false);
   const [products, setProducts] = useState<any>(null);
-  const [isUpdatePassword, setIsUpdatePassword] = useState<boolean>(false);
+
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<string>("default");
   console.log("Fetched products:", products);
@@ -151,18 +151,6 @@ export const Dashboard = () => {
       .join(" ");
   return (
     <>
-      <UpdatePasswordDialog
-        open={isUpdatePassword}
-        handleClose={() => {
-          setIsUpdatePassword(false);
-        }}
-      />
-      <FeedbackDialog
-        open={feedbackState.open}
-        handleClose={() => {
-          setFeedbackState({ open: false });
-        }}
-      />
       <SellingDialog
         open={wantToSell}
         handleClose={() => setWantTOSell(false)}
@@ -180,17 +168,6 @@ export const Dashboard = () => {
               <Typography variant="h4">Products List</Typography>
             </Stack>
             <Stack direction="row" spacing={2}>
-              {/* <Button
-                variant="contained"
-                onClick={() => {
-                  setIsUpdatePassword(true);
-                }}
-                sx={{
-                  textTransform: "none",
-                }}
-              >
-                Update Password
-              </Button> */}
               <Button
                 variant="contained"
                 color="secondary"
@@ -213,16 +190,6 @@ export const Dashboard = () => {
               >
                 Logout
               </Button>
-              {/* <Button
-                variant="contained"
-                onClick={() =>
-                  setFeedbackState({
-                    open: true,
-                  })
-                }
-              >
-                Feedback
-              </Button> */}
             </Stack>
           </Stack>
         </Card>

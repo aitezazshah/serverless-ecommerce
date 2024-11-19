@@ -1,2 +1,0 @@
-ALTER TABLE product ADD COLUMN price INTEGER CHECK (price >= 0);
-ALTER TABLE product ADD COLUMN is_bought bool DEFAULT FALSE;

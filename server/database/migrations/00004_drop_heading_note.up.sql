@@ -1,2 +1,0 @@
-ALTER TABLE notes DROP COLUMN heading;
-ALTER TABLE notes DROP COLUMN note;

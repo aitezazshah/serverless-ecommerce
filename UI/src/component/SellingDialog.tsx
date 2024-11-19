@@ -60,7 +60,7 @@ export const SellingDialog = ({
     []
   );
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async () => {
     try {
       if (!imageBase64) {
         setErrorMessage("Please upload an image");
