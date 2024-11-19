@@ -19,6 +19,8 @@ const schema = Yup.object().shape({
   image: Yup.mixed().required("Image is required"),
 });
 
+
+
 export const SellingDialog = ({
   open,
   handleClose,
@@ -84,6 +86,8 @@ export const SellingDialog = ({
         }
       );
 
+      const data = await response.json();
+
       if (response) {
         reset();
         setImageBase64(null);
@@ -92,8 +96,8 @@ export const SellingDialog = ({
         setSuccessMessage("Product Created Successfully");
         setSuccessMessage("");
       } else {
-        const errorData = await response.json();
-        setErrorMessage(errorData.error);
+        
+        setErrorMessage(data.error);
       }
     } catch (error) {
       console.error("Error submitting form:", error);
