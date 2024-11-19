@@ -6,6 +6,11 @@ import {
   Typography,
   Fab,
   Grid,
+  TextField,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
@@ -23,6 +28,8 @@ export const Dashboard = () => {
   const [wantToSell, setWantTOSell] = useState<boolean>(false);
   const [products, setProducts] = useState<any>(null);
   const [isUpdatePassword, setIsUpdatePassword] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [sortOrder, setSortOrder] = useState<string>("default");
   console.log("Fetched products:", products);
 
   useEffect(() => {
@@ -30,6 +37,50 @@ export const Dashboard = () => {
       navigation("/");
     }
   }, [userRole]);
+
+  const handleSearch = async () => {
+    try {
+      const response = await fetch(
+        `https://srchkmvzl4.execute-api.us-east-1.amazonaws.com/test/search-product?q=${searchTerm}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data);
+      }
+    } catch (error) {
+      console.error("Search failed:", error);
+    }
+  };
+
+  const handleSort = async () => {
+    try {
+      const response = await fetch(
+        `https://srchkmvzl4.execute-api.us-east-1.amazonaws.com/test/sort-product?q=${sortOrder}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data);
+      }
+    } catch (error) {
+      console.error("Search failed:", error);
+    }
+  };
 
   const getProductDetails = useCallback(async () => {
     try {
@@ -93,7 +144,11 @@ export const Dashboard = () => {
   useEffect(() => {
     getProductDetails();
   }, [getProductDetails]);
-
+  const capitalizeWords = (str: string): string =>
+    str
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
   return (
     <>
       <UpdatePasswordDialog
@@ -173,6 +228,34 @@ export const Dashboard = () => {
         </Card>
 
         {/* Grid Layout for Product Cards */}
+        <Stack direction="row" spacing={1} padding={2}>
+          <TextField
+            variant="outlined"
+            label="Search Products"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+          />
+          <Button variant="contained" onClick={handleSearch}>
+            Search
+          </Button>
+
+          <FormControl variant="outlined" sx={{ minWidth: 120 }}>
+            <InputLabel>Sort Price</InputLabel>
+            <Select
+              value={sortOrder}
+              onChange={(e) => {
+                setSortOrder(e.target.value);
+                handleSort();
+              }}
+              label="Sort Price"
+            >
+              <MenuItem value="default">Default</MenuItem>
+              <MenuItem value="high-to-low">Low to High</MenuItem>
+              <MenuItem value="low-to-high">High to Low</MenuItem>
+            </Select>
+          </FormControl>
+        </Stack>
         <Grid container spacing={3} mt={4}>
           {products?.length ? (
             products?.map(
@@ -206,7 +289,7 @@ export const Dashboard = () => {
                     />
                     <Stack spacing={2} p={2}>
                       <Typography variant="h6" fontWeight="bold" noWrap>
-                        {title}
+                        {capitalizeWords(title)}
                       </Typography>
 
                       <Stack direction="row" spacing={2} alignItems="center">
