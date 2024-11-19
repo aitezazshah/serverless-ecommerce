@@ -1,31 +1,34 @@
-import { Outlet, RouteObject, createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 import { Login } from "./Pages/login";
 import { ForgotPassword } from "./Pages/forgetPassword";
 import { Dashboard } from "./Pages/dashboard";
 
-const GlobalProvider = () => {
-  return <Outlet />;
-};
+// Define the public routes (Dashboard can be accessed without authentication)
+const publicRoutes = [{ path: "/dashboard", element: <Dashboard /> }];
 
-const AuthenticatedRoutes: RouteObject = {
-  path: "/",
-  children: [
-    { path: "/", Component: Login },
-    {
-      path: "/forget-password",
-      Component: ForgotPassword,
-    },
-    {
-      path: "/dashboard",
-      Component: Dashboard,
-    },
-  ],
+// Define authenticated routes (Login, ForgotPassword, etc.)
+const authenticatedRoutes = [
+  { path: "/", element: <Login /> },
+  { path: "/forget-password", element: <ForgotPassword /> },
+];
+
+// Define a wrapper component for authenticated routes
+const AuthenticatedProvider = () => {
+  return (
+    <>
+      <Login />
+    </>
+  );
 };
 
 export const App = createBrowserRouter([
+  // Public routes (Dashboard is accessible here)
+  ...publicRoutes,
+
+  // Authenticated routes (Login and Forgot Password are here)
   {
     path: "/",
-    Component: GlobalProvider,
-    children: [AuthenticatedRoutes],
+    element: <AuthenticatedProvider />,
+    children: authenticatedRoutes,
   },
 ]);

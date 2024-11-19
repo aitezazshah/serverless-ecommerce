@@ -16,31 +16,59 @@ const schema = Yup.object().shape({
   title: Yup.string().required("Title is required"),
   description: Yup.string().required("Description is required"),
   price: Yup.string().required("Price is required"),
+  image: Yup.mixed().required("Image is required"),
 });
 
-export const SellingDialog = ({ open, handleClose , getProductDetails}: any) => {
+export const SellingDialog = ({
+  open,
+  handleClose,
+  getProductDetails,
+}: any) => {
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const token = localStorage.getItem("token");
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const token = localStorage.getItem(
+    "CognitoIdentityServiceProvider.10fqms5r41oqvidv1jp0r2gkpt.44e894a8-6081-70dd-9e9a-21483e83295f.accessToken"
+  );
+
   const {
     register,
     handleSubmit,
     watch,
     formState: { errors },
-    reset
+    reset,
   } = useForm<any>({
     defaultValues: {
       title: "",
       description: "",
       price: "",
+      image: null,
     },
     mode: "all",
     resolver: yupResolver(schema),
   });
 
-  const handleSubmitSellingForm = useCallback(async () => {
+  const handleImageUpload = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = () => setImageBase64(reader.result as string);
+        reader.readAsDataURL(file);
+      }
+    },
+    []
+  );
+
+  const onSubmit = async (data: any) => {
     try {
+      if (!imageBase64) {
+        setErrorMessage("Please upload an image");
+        return;
+      }
+
       const response = await fetch(
-        `http://localhost:8080/v1/auth/admin/sell-product`,
+        `https://srchkmvzl4.execute-api.us-east-1.amazonaws.com/test/create-product`,
         {
           method: "POST",
           headers: {
@@ -48,39 +76,52 @@ export const SellingDialog = ({ open, handleClose , getProductDetails}: any) => 
             Authorization: `${token}`,
           },
           body: JSON.stringify({
-            name: watch("title"),
+            title: watch("title"),
             description: watch("description"),
             price: Number(watch("price")),
+            base64Image: imageBase64,
           }),
         }
       );
-      if (response.status === 200) {
-        reset()
+
+      if (response) {
+        reset();
+        setImageBase64(null);
         handleClose();
-        getProductDetails()
-        setErrorMessage("")
-      }else{
-        setErrorMessage("Something went wrong");
+        getProductDetails();
+        setSuccessMessage("Product Created Successfully");
+        setSuccessMessage("");
+      } else {
+        const errorData = await response.json();
+        setErrorMessage(errorData.error);
       }
     } catch (error) {
-      console.log(error);
-      
+      console.error("Error submitting form:", error);
+      setErrorMessage("An error occurred while submitting the form");
     }
-  }, [handleClose, token, watch, getProductDetails]);
+  };
 
   return (
-    <Dialog open={open} onClose={()=>{handleClose()
-      reset()
-      setErrorMessage("")
-    }} fullWidth maxWidth={"sm"}>
+    <Dialog
+      open={open}
+      onClose={() => {
+        handleClose();
+        reset();
+        setImageBase64(null);
+        setErrorMessage("");
+        setSuccessMessage("");
+      }}
+      fullWidth
+      maxWidth="sm"
+    >
       <DialogTitle textAlign="center">Selling Form</DialogTitle>
       <DialogContent>
         <Stack
-          component={"form"}
-          onSubmit={handleSubmit(handleSubmitSellingForm)}
+          component="form"
+          onSubmit={handleSubmit(onSubmit)}
           spacing={2}
           mt={2}
-          width={"100%"}
+          width="100%"
         >
           <TextField
             fullWidth
@@ -106,8 +147,27 @@ export const SellingDialog = ({ open, handleClose , getProductDetails}: any) => 
             helperText={errors && (errors.price?.message as string)}
             sx={{ "& .MuiFormHelperText-root": { color: "red" } }}
           />
-           {errorMessage && <Typography color="error">{errorMessage}</Typography>}
-          <Button variant="contained" type="submit">
+          <Button variant="contained" component="label">
+            Upload Image
+            <input
+              type="file"
+              hidden
+              accept="image/*"
+              onChange={handleImageUpload}
+            />
+          </Button>
+          {imageBase64 && (
+            <Typography color="primary" variant="caption">
+              Image uploaded successfully
+            </Typography>
+          )}
+          {errorMessage && (
+            <Typography color="error">{errorMessage}</Typography>
+          )}
+          {successMessage && (
+            <Typography color="green">{successMessage}</Typography>
+          )}
+          <Button variant="contained" onClick={onSubmit}>
             Submit
           </Button>
         </Stack>

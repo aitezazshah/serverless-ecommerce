@@ -1,4 +1,12 @@
-import { Stack, Card, Button, useTheme, Typography, Fab } from "@mui/material";
+import {
+  Stack,
+  Card,
+  Button,
+  useTheme,
+  Typography,
+  Fab,
+  Grid,
+} from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 import { FeedbackDialog } from "../component/feedbackdialog";
@@ -11,31 +19,34 @@ export const Dashboard = () => {
   );
   const userRole = localStorage.getItem("userRole");
   const navigation = useNavigate();
-  const [feedbackState, setFeedbackState] = useState<any>({
-    open: false,
-  });
+  const [feedbackState, setFeedbackState] = useState<any>({ open: false });
   const [wantToSell, setWantTOSell] = useState<boolean>(false);
   const [products, setProducts] = useState<any>(null);
   const [isUpdatePassword, setIsUpdatePassword] = useState<boolean>(false);
+  console.log("Fetched products:", products);
 
   useEffect(() => {
-    if (!token || !userRole) {
+    if (!userRole) {
       navigation("/");
     }
-  }, [token, userRole]);
+  }, [userRole]);
 
   const getProductDetails = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:8080/v1/auth/products`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `${token}`,
-        },
-      });
+      const response = await fetch(
+        `https://srchkmvzl4.execute-api.us-east-1.amazonaws.com/test/create-product`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `${token}`,
+          },
+        }
+      );
       if (response.status) {
         const data = await response.json();
         setProducts(data);
+        console.log("Product Data", data);
       }
     } catch (error) {
       console.log(error);
@@ -44,24 +55,39 @@ export const Dashboard = () => {
 
   const handleBuyProduct = useCallback(
     async (e: any, id: string) => {
+      console.log("Product ID:", id);
       e.preventDefault();
       try {
-        await fetch(`http://localhost:8080/v1/auth/products`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `${token}`,
-          },
-          body: JSON.stringify({
-            productId: id,
-          }),
-        });
-        getProductDetails();
+        const response = await fetch(
+          `https://srchkmvzl4.execute-api.us-east-1.amazonaws.com/test/purchase`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `${token}`,
+            },
+            body: JSON.stringify({
+              productId: id,
+              userId: localStorage.getItem("userId"), // Add this to your login flow
+            }),
+          }
+        );
+        console.log(response);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Purchase successful:", data);
+          // Show success message to user
+          getProductDetails(); // Refresh product list
+        } else {
+          throw new Error("Purchase failed");
+        }
       } catch (error) {
-        console.log(error);
+        console.error(error);
+        // Show error message to user
       }
     },
-    [getProductDetails]
+    [getProductDetails, token]
   );
 
   useEffect(() => {
@@ -79,9 +105,7 @@ export const Dashboard = () => {
       <FeedbackDialog
         open={feedbackState.open}
         handleClose={() => {
-          setFeedbackState({
-            open: false,
-          });
+          setFeedbackState({ open: false });
         }}
       />
       <SellingDialog
@@ -90,17 +114,8 @@ export const Dashboard = () => {
         getProductDetails={getProductDetails}
       />
 
-      <Stack
-        sx={{
-          width: "100%",
-        }}
-      >
-        <Card
-          elevation={2}
-          sx={{
-            padding: theme.spacing(2, 1),
-          }}
-        >
+      <Stack sx={{ width: "100%" }}>
+        <Card elevation={2} sx={{ padding: theme.spacing(2, 1) }}>
           <Stack
             direction="row"
             justifyContent="space-between"
@@ -110,7 +125,7 @@ export const Dashboard = () => {
               <Typography variant="h4">Products List</Typography>
             </Stack>
             <Stack direction="row" spacing={2}>
-              <Button
+              {/* <Button
                 variant="contained"
                 onClick={() => {
                   setIsUpdatePassword(true);
@@ -120,7 +135,7 @@ export const Dashboard = () => {
                 }}
               >
                 Update Password
-              </Button>
+              </Button> */}
               <Button
                 variant="contained"
                 color="secondary"
@@ -132,13 +147,18 @@ export const Dashboard = () => {
                     "CognitoIdentityServiceProvider.10fqms5r41oqvidv1jp0r2gkpt.44e894a8-6081-70dd-9e9a-21483e83295f.accessToken",
                     ""
                   );
+                  localStorage.setItem(
+                    "CognitoIdentityServiceProvider.10fqms5r41oqvidv1jp0r2gkpt.b48874d8-d0d1-70dd-2dfd-7573775d5286.signInDetails",
+                    ""
+                  );
+
                   localStorage.setItem("userRole", "");
                   navigation("/");
                 }}
               >
                 Logout
               </Button>
-              <Button
+              {/* <Button
                 variant="contained"
                 onClick={() =>
                   setFeedbackState({
@@ -147,45 +167,107 @@ export const Dashboard = () => {
                 }
               >
                 Feedback
-              </Button>
+              </Button> */}
             </Stack>
           </Stack>
         </Card>
 
-        <Stack spacing={2} mt={4} minHeight={580}>
+        {/* Grid Layout for Product Cards */}
+        <Grid container spacing={3} mt={4}>
           {products?.length ? (
-            products?.map(({ id, name, description, price, isBought }: any) => (
-              <Card elevation={4} key={id}>
-                <Stack spacing={1} p={2}>
-                  <Typography>Title: {name}</Typography>
-                  <Stack direction={"row"} spacing={2}>
-                    <Typography>Description: {description}</Typography>
-                    <Typography>Price: {`${price ?? 0}`}</Typography>
-                  </Stack>
-                  {userRole === "buyer" && (
-                    <Stack
-                      direction="row"
-                      alignItems="center"
-                      justifyContent="space-between"
-                    >
-                      {!isBought && (
-                        <Button
-                          variant="contained"
-                          onClick={(e) => handleBuyProduct(e, id)}
+            products?.map(
+              ({
+                productId,
+                title,
+                imageUrl,
+                description,
+                price,
+                isBought,
+              }: any) => (
+                <Grid item xs={12} sm={6} md={3} key={productId}>
+                  <Card
+                    elevation={4}
+                    sx={{
+                      maxWidth: 345,
+                      borderRadius: 2,
+                      overflow: "hidden",
+                      boxShadow: theme.shadows[3],
+                    }}
+                  >
+                    <img
+                      src={imageUrl}
+                      alt={title}
+                      style={{
+                        width: "100%",
+                        height: "200px",
+                        objectFit: "cover",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Stack spacing={2} p={2}>
+                      <Typography variant="h6" fontWeight="bold" noWrap>
+                        {title}
+                      </Typography>
+
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          noWrap
                         >
-                          Buy
-                        </Button>
+                          Description:
+                        </Typography>
+                        <Typography variant="body2" noWrap>
+                          {description}
+                        </Typography>
+                      </Stack>
+
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Typography
+                          variant="h6"
+                          fontWeight="bold"
+                          color="primary"
+                        >
+                          {`$${price ?? 0}`}
+                        </Typography>
+                      </Stack>
+
+                      {userRole === "buyer" && (
+                        <Stack
+                          direction="row"
+                          alignItems="center"
+                          justifyContent="space-between"
+                        >
+                          {!isBought ? (
+                            <Button
+                              variant="contained"
+                              onClick={(e) => handleBuyProduct(e, productId)}
+                              sx={{
+                                textTransform: "none",
+                                backgroundColor: "#00ff99",
+                                "&:hover": { backgroundColor: "#00e187" },
+                              }}
+                            >
+                              Buy Now
+                            </Button>
+                          ) : (
+                            <Typography variant="body2" color="#00e187">
+                              SOLD OUT
+                            </Typography>
+                          )}
+                        </Stack>
                       )}
                     </Stack>
-                  )}
-                </Stack>
-              </Card>
-            ))
+                  </Card>
+                </Grid>
+              )
+            )
           ) : (
-            <Typography>No Data Found</Typography>
+            <Typography paddingLeft={10}>No Data Found</Typography>
           )}
-        </Stack>
+        </Grid>
       </Stack>
+
       {userRole === "seller" && (
         <Stack
           direction="row"

@@ -105,6 +105,7 @@ export const Login = () => {
 
           // User is already signed in with correct role
           localStorage.setItem("userRole", watch("userRole"));
+          localStorage.setItem("userId", attributes.sub); // Store user ID
           navigation("/dashboard");
           return;
         }
@@ -130,6 +131,7 @@ export const Login = () => {
 
         // Store necessary information
         localStorage.setItem("userRole", watch("userRole"));
+        localStorage.setItem("userId", attributes.sub || ""); // Store user ID
         reset();
         navigation("/dashboard");
         setError("");
