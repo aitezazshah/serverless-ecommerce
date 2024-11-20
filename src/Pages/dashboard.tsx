@@ -11,6 +11,11 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
@@ -27,6 +32,8 @@ export const Dashboard = () => {
 
   const [wantToSell, setWantTOSell] = useState<boolean>(false);
   const [products, setProducts] = useState<any>(null);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<string>("default");
@@ -141,6 +148,44 @@ export const Dashboard = () => {
     [getProductDetails, token]
   );
 
+  const handleDeleteProduct = useCallback(async () => {
+    if (!productToDelete) return;
+
+    try {
+      const response = await fetch(
+        `https://srchkmvzl4.execute-api.us-east-1.amazonaws.com/test/delete-product`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `${token}`,
+          },
+          body: JSON.stringify({
+            productId: productToDelete,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        // Close the confirmation dialog
+        setDeleteConfirmOpen(false);
+
+        // Refresh the product list
+        getProductDetails();
+
+        // Reset the product to delete
+        setProductToDelete(null);
+      } else {
+        const errorData = await response.json();
+        console.error("Delete product failed:", errorData);
+        // Handle error (show error message to user)
+      }
+    } catch (error) {
+      console.error("Delete product error:", error);
+      // Handle network or other errors
+    }
+  }, [token, productToDelete, getProductDetails]);
+
   useEffect(() => {
     getProductDetails();
   }, [getProductDetails]);
@@ -223,6 +268,30 @@ export const Dashboard = () => {
             </Select>
           </FormControl>
         </Stack>
+        <Dialog
+          open={deleteConfirmOpen}
+          onClose={() => setDeleteConfirmOpen(false)}
+          aria-labelledby="delete-dialog-title"
+          aria-describedby="delete-dialog-description"
+        >
+          <DialogTitle id="delete-dialog-title">
+            {"Confirm Product Deletion"}
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText id="delete-dialog-description">
+              Are you sure you want to delete this product? This action cannot
+              be undone.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteConfirmOpen(false)} color="primary">
+              Cancel
+            </Button>
+            <Button onClick={handleDeleteProduct} color="error" autoFocus>
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
         <Grid container spacing={3} mt={4}>
           {products?.length ? (
             products?.map(
@@ -281,6 +350,26 @@ export const Dashboard = () => {
                           {`$${price ?? 0}`}
                         </Typography>
                       </Stack>
+                      {userRole === "seller" && (
+                        <Stack
+                          direction="row"
+                          spacing={2}
+                          p={2}
+                          justifyContent="space-between"
+                        >
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            onClick={() => {
+                              setProductToDelete(productId);
+                              setDeleteConfirmOpen(true);
+                            }}
+                            sx={{ textTransform: "none" }}
+                          >
+                            Delete Product
+                          </Button>
+                        </Stack>
+                      )}
 
                       {userRole === "buyer" && (
                         <Stack
