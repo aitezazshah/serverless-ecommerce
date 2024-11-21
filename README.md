@@ -14,18 +14,23 @@ To run this application locally, follow these steps:
 
 ### 1. Clone the repository
 
-
-git clone [https://github.com/aitezazshah/serverless-ecommerce.git]
+```bash
+git clone https://github.com/aitezazshah/serverless-ecommerce.git
+```
 
 
 ### 2. Install node modules
 Navigate to the project directory and install the necessary dependencies:
 
-npm install
+```bash
+  npm install
+```
 ### 3. Run the development environment
 Start the development environment with:
 
+```bash
 npm run dev
+```
 
 The application should now be running locally on http://127.0.0.1:5173/.
 
