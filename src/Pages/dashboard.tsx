@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
+import { EditProductDialog } from "../component/EditProductDialog";
 
 import { SellingDialog } from "../component";
 
@@ -33,7 +34,9 @@ export const Dashboard = () => {
   const [wantToSell, setWantTOSell] = useState<boolean>(false);
   const [products, setProducts] = useState<any>(null);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [productToEdit, setProductToEdit] = useState<any>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<string>("default");
@@ -196,6 +199,13 @@ export const Dashboard = () => {
       .join(" ");
   return (
     <>
+      <EditProductDialog
+        open={editDialogOpen}
+        handleClose={() => setEditDialogOpen(false)}
+        product={productToEdit}
+        token={token as string}
+        getProductDetails={getProductDetails}
+      />
       <SellingDialog
         open={wantToSell}
         handleClose={() => setWantTOSell(false)}
@@ -357,6 +367,23 @@ export const Dashboard = () => {
                           p={2}
                           justifyContent="space-between"
                         >
+                          <Button
+                            variant="outlined"
+                            color="primary"
+                            onClick={() => {
+                              setProductToEdit({
+                                productId,
+                                title,
+                                imageUrl,
+                                description,
+                                price,
+                              });
+                              setEditDialogOpen(true);
+                            }}
+                            sx={{ textTransform: "none" }}
+                          >
+                            Edit Product
+                          </Button>
                           <Button
                             variant="outlined"
                             color="error"
