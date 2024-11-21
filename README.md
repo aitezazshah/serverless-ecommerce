@@ -1,7 +1,7 @@
 
-# Serverless Ecommerce
+# Serverless E-commerce
 
-Serverless Ecommerce is a simple e-commerce application with AWS as the backend. The purpose of this project is to provide a cost-effective and scalable solution for small and medium e-commerce businesses.
+Serverless Ecommerce is a simple e-commerce application with AWS as the backend. This project aims to provide a cost-effective and scalable solution for small and medium e-commerce businesses.
 
 ## Deployed Application Link
 
